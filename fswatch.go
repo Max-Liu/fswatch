@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"io/ioutil"
 	"path/filepath"
-	"strings"
 	"time"
-
+	"strings"
 	"github.com/howeyc/fsnotify"
 	"github.com/jessevdk/go-flags"
 	"github.com/shxsun/klog"
+	"encoding/json"
 )
 
 var (
@@ -47,6 +48,7 @@ func watchDirAndChildren(w *fsnotify.Watcher, path string, depth int) error {
 
 // generate new event
 func NewEvent(paths []string, depth int) chan *fsnotify.FileEvent {
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		K.Fatalf("fail to create new Watcher: %s", err)
@@ -121,11 +123,15 @@ var opts struct {
 	Depth   int    `short:"d" long:"depth" description:"depth of watch" default:"1"`
 }
 
+type watchConfig struct {
+	Cmd     string
+	Path   []string
+}
 func main() {
 	parser := flags.NewParser(&opts, flags.Default|flags.PassAfterNonOption)
 	args, err := parser.Parse()
-
 	if err != nil {
+		K.Fatal(err)
 		os.Exit(1)
 	}
 	if opts.Verbose {
@@ -136,6 +142,7 @@ func main() {
 		K.Warn(err)
 		notifyDelay = time.Millisecond * 500
 	}
+
 	K.Debugf("delay time: %s", notifyDelay)
 
 	if len(args) == 0 {
@@ -143,14 +150,29 @@ func main() {
 		return
 	}
 
-	// check if cmd exists
-	_, err = exec.LookPath(args[0])
+	// // check if cmd exists
+	// _, err = exec.LookPath(args[0])
+	// if err != nil {
+	// 	fmt.Println(1)
+	// }
+	dataByte,err := ioutil.ReadFile(args[0])
+
+	if err!=nil{
+		K.Fatal(err)
+	}
+
+	var config watchConfig
+
+	err = json.Unmarshal(dataByte, &config)
 	if err != nil {
 		K.Fatal(err)
 	}
-	cmd := exec.Command(args[0], args[1:]...)
+
+	cmdSlice :=strings.Split(config.Cmd," ")
+
+	cmd := exec.Command(cmdSlice[0],cmdSlice[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	event := NewEvent([]string{"."}, opts.Depth)
+	event := NewEvent(config.Path, 10)
 	execute(event, cmd)
 }
