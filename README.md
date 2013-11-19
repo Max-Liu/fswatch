@@ -17,19 +17,28 @@ fswatch will follow 3 steps.
 go get github.com/shxsun/fswatch
 # cd to a golang project
 # ...
-fswatch go test
+fswatch config.json
 
 # open a new shell, cd to the same place
 touch test.go
 
 # now fswatch should do some tests. (if nothing happens, tell me)
 ```
+#Config.json file structure
+
+```
+Cmd string
+Path []string
+
+Example json file:{"Cmd":"go run main.go","Path":["/Users/Max/Go/src/mathapp/","/Users/Max/Go/src/test/"]}
+
+```
 
 ![fswatch](images/fswatch.png)
 
 ## Shell help
 	Usage:
-	  fswatch [OPTIONS]
+	  fswatch [OPTIONS] config_file
 
 	Help Options:
 	  -h, --help=    Show this help message
